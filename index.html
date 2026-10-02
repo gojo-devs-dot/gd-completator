@@ -3,208 +3,87 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GD Completions Tracker</title>
+  <title>GD Tracker avec Fond YouTube</title>
   <style>
-    :root {
-      --bg-color: #0f172a;
-      --card-bg: #1e293b;
-      --accent-color: #38bdf8;
-      --text-color: #f8fafc;
-      --text-muted: #94a3b8;
-    }
-
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background-color: var(--bg-color);
-      color: var(--text-color);
+    * {
+      box-sizing: border-box;
       margin: 0;
-      padding: 2rem;
+      padding: 0;
     }
 
-    h1 {
-      text-align: center;
-      color: var(--accent-color);
-      margin-bottom: 2rem;
+    body, html {
+      width: 100%;
+      height: 100%;
+      overflow-x: hidden;
+      font-family: 'Segoe UI', sans-serif;
     }
 
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-      gap: 1.5rem;
-      max-width: 1200px;
-      margin: 0 auto;
-    }
-
-    /* Carte de Niveau */
-    .card {
-      background: var(--card-bg);
-      border-radius: 12px;
-      padding: 1.5rem;
-      cursor: pointer;
-      transition: transform 0.2s, box-shadow 0.2s;
-      border: 1px solid rgba(255, 255, 255, 0.05);
-    }
-
-    .card:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 10px 20px rgba(56, 189, 248, 0.15);
-      border-color: var(--accent-color);
-    }
-
-    .card h3 {
-      margin: 0 0 0.5rem 0;
-      font-size: 1.3rem;
-    }
-
-    .card .badge {
-      display: inline-block;
-      padding: 0.25rem 0.6rem;
-      border-radius: 20px;
-      background: rgba(56, 189, 248, 0.1);
-      color: var(--accent-color);
-      font-size: 0.85rem;
-      font-weight: bold;
-    }
-
-    /* Modale (Pop-up) */
-    .modal-overlay {
+    /* Conteneur de la vidéo en arrière-plan */
+    .video-background {
       position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0, 0, 0, 0.75);
-      backdrop-filter: blur(5px);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.3s ease;
-      z-index: 1000;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -2;
+      pointer-events: none; /* Empêche de cliquer sur la vidéo */
+      overflow: hidden;
     }
 
-    .modal-overlay.active {
-      opacity: 1;
-      pointer-events: auto;
-    }
-
-    .modal {
-      background: var(--card-bg);
-      padding: 2rem;
-      border-radius: 16px;
-      max-width: 500px;
-      width: 90%;
-      border: 1px solid var(--accent-color);
-      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
-      position: relative;
-    }
-
-    .modal-close {
+    .video-background iframe {
       position: absolute;
-      top: 1rem; right: 1rem;
-      background: none; border: none;
-      color: var(--text-muted);
-      font-size: 1.5rem;
-      cursor: pointer;
+      top: 50%;
+      left: 50%;
+      width: 100vw;
+      height: 56.25vw; /* Ratio 16:9 */
+      min-height: 100vh;
+      min-width: 177.77vh; /* Ratio 16:9 */
+      transform: translate(-50%, -50%);
     }
 
-    .modal-detail {
-      margin: 0.8rem 0;
-      color: var(--text-muted);
+    /* Calque sombre par-dessus la vidéo pour lire le texte facilement */
+    .overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(9, 13, 22, 0.75); /* Ajuste l'opacité selon tes goûts */
+      backdrop-filter: blur(3px); /* Optionnel : floute légèrement la vidéo */
+      z-index: -1;
     }
 
-    .modal-detail span {
-      color: var(--text-color);
-      font-weight: bold;
-    }
-
-    .btn-video {
-      display: inline-block;
-      margin-top: 1rem;
-      padding: 0.6rem 1.2rem;
-      background: var(--accent-color);
-      color: #000;
-      font-weight: bold;
-      text-decoration: none;
-      border-radius: 8px;
+    /* Contenu de ton site */
+    .content {
+      position: relative;
+      z-index: 1;
+      color: #fff;
+      padding: 2rem;
+      text-align: center;
     }
   </style>
 </head>
 <body>
 
-  <h1>🎮 Geometry Dash Completions</h1>
-  <div class="grid" id="levels-grid"></div>
-
-  <!-- Structure de la Modale -->
-  <div class="modal-overlay" id="modal-overlay">
-    <div class="modal">
-      <button class="modal-close" onclick="closeModal()">&times;</button>
-      <h2 id="m-title" style="color: var(--accent-color); margin-top: 0;"></h2>
-      <div class="modal-detail">Créateur : <span id="m-creator"></span></div>
-      <div class="modal-detail">Difficulté : <span id="m-difficulty"></span></div>
-      <div class="modal-detail">Étoiles : <span id="m-stars"></span> ⭐</div>
-      <div class="modal-detail">Tentatives : <span id="m-attempts"></span></div>
-      <div class="modal-detail">ID du niveau : <span id="m-id"></span></div>
-      <div class="modal-detail" style="margin-top: 1rem; font-style: italic;" id="m-comment"></div>
-      <div id="m-video-container"></div>
-    </div>
+  <!-- Arrière-plan Vidéo YouTube -->
+  <div class="video-background">
+    <!-- Remplace VIDEO_ID par l'identifiant de ta vidéo YouTube (ex: dQw4w9WgXcQ) -->
+    <iframe 
+      src="https://www.youtube.com/embed/VIDEO_ID?autoplay=1&mute=1&loop=1&playlist=VIDEO_ID&controls=0&showinfo=0&autohide=1&modestbranding=1" 
+      frameborder="0" 
+      allow="autoplay; encrypted-media" 
+      allowfullscreen>
+    </iframe>
   </div>
 
-  <!-- Firebase SDK -->
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+  <!-- Filtre sombre pour la lisibilité -->
+  <div class="overlay"></div>
 
-    const firebaseConfig = {
-      databaseURL: "https://bruh-ba711-default-rtdb.firebaseio.com"
-    };
+  <!-- Contenu du site -->
+  <div class="content">
+    <h1>Geometry Dash Tracker</h1>
+    <p>Ton contenu s'affiche par-dessus la vidéo !</p>
+  </div>
 
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
-
-    const grid = document.getElementById('levels-grid');
-
-    // Récupération en temps réel
-    onValue(ref(db, 'completions'), (snapshot) => {
-      grid.innerHTML = '';
-      const data = snapshot.val();
-      
-      if (!data) return;
-
-      Object.values(data).reverse().forEach(level => {
-        const card = document.createElement('div');
-        card.className = 'card';
-        card.innerHTML = `
-          <h3>${level.level_name}</h3>
-          <span class="badge">${level.difficulty || 'Rated'} - ${level.stars} ⭐</span>
-        `;
-        
-        // Au clic, on ouvre la modale avec les détails
-        card.onclick = () => openModal(level);
-        grid.appendChild(card);
-      });
-    });
-
-    window.openModal = (level) => {
-      document.getElementById('m-title').innerText = level.level_name;
-      document.getElementById('m-creator').innerText = level.creator || 'Inconnu';
-      document.getElementById('m-difficulty').innerText = level.difficulty || 'Non spécifiée';
-      document.getElementById('m-stars').innerText = level.stars || 0;
-      document.getElementById('m-attempts').innerText = level.attempts || 'N/A';
-      document.getElementById('m-id').innerText = level.level_id || 'N/A';
-      document.getElementById('m-comment').innerText = level.comment ? `"${level.comment}"` : '';
-
-      const videoContainer = document.getElementById('m-video-container');
-      if (level.video_url) {
-        videoContainer.innerHTML = `<a href="${level.video_url}" target="_blank" class="btn-video">📺 Voir la vidéo de preuve</a>`;
-      } else {
-        videoContainer.innerHTML = '';
-      }
-
-      document.getElementById('modal-overlay').classList.add('active');
-    };
-
-    window.closeModal = () => {
-      document.getElementById('modal-overlay').classList.remove('active');
-    };
-  </script>
 </body>
 </html>
