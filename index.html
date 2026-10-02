@@ -11,7 +11,7 @@
   <style>
     :root {
       --bg-dark: #090d16;
-      --card-bg: rgba(19, 27, 46, 0.85); /* Semi-transparent pour voir le fond */
+      --card-bg: rgba(19, 27, 46, 0.85);
       --card-border: rgba(255, 255, 255, 0.1);
       --accent-cyan: #38bdf8;
       --accent-purple: #c084fc;
@@ -57,7 +57,7 @@
       z-index: -1;
     }
 
-    /* --- STYLE DES COMPLÉTIONS (RESTENT NICKELS PAR-DESSUS) --- */
+    /* --- CONTENU DE LA PAGE --- */
     .container { max-width: 1200px; margin: 0 auto; position: relative; z-index: 1; }
     
     header { text-align: center; margin-bottom: 2.5rem; }
@@ -92,21 +92,20 @@
 </head>
 <body>
 
-  <!-- 1. Arrière-plan Vidéo YouTube -->
+  <!-- 1. Arrière-plan Vidéo YouTube (Bloodbath gameplay) -->
   <div class="video-background">
-    <!-- Remplace ID_DE_LA_VIDEO par l'ID YouTube souhaité (ex: 843232, dQw4w9WgXcQ, etc.) -->
     <iframe 
-      src="https://www.youtube.com/embed/ID_DE_LA_VIDEO?autoplay=1&mute=1&loop=1&playlist=ID_DE_LA_VIDEO&controls=0&showinfo=0&autohide=1&modestbranding=1" 
+      src="https://www.youtube.com/embed/9T12b053-Cg?autoplay=1&mute=1&loop=1&playlist=9T12b053-Cg&controls=0&showinfo=0&autohide=1&modestbranding=1&enablejsapi=1" 
       frameborder="0" 
       allow="autoplay; encrypted-media" 
       allowfullscreen>
     </iframe>
   </div>
 
-  <!-- 2. Filtre Sombre pour garder les complétions super lisibles -->
+  <!-- 2. Filtre Sombre pour la lisibilité -->
   <div class="overlay"></div>
 
-  <!-- 3. Contenu du Tracker par-dessus -->
+  <!-- 3. Contenu du Tracker -->
   <div class="container">
     <header>
       <h1>Geometry Dash Tracker</h1>
