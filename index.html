@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mes Complétions Geometry Dash</title>
+  
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #0f0f13;
+      color: #ffffff;
+      padding: 30px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+    h1 {
+      font-size: 2.2rem;
+      margin-bottom: 25px;
+      color: #00ffcc;
+      text-shadow: 0 0 10px rgba(0, 255, 204, 0.4);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+    #list {
+      width: 100%;
+      max-width: 500px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .card {
+      background: #181822;
+      border: 1px solid #2a2a3c;
+      border-left: 5px solid #00ffcc;
+      padding: 16px 20px;
+      border-radius: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0, 255, 204, 0.15);
+    }
+    .level-name {
+      font-size: 1.2rem;
+      font-weight: bold;
+      color: #ffffff;
+    }
+    .level-stars {
+      font-size: 1rem;
+      font-weight: bold;
+      color: #ffd700;
+      background: rgba(255, 215, 0, 0.1);
+      padding: 4px 10px;
+      border-radius: 20px;
+      border: 1px solid rgba(255, 215, 0, 0.3);
+    }
+    .empty-msg {
+      text-align: center;
+      color: #8888a0;
+      font-style: italic;
+      margin-top: 20px;
+    }
+  </style>
+
+  <!-- Modules Firebase v10 -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+    // Tes identifiants exacts
+    const firebaseConfig = {
+      apiKey: "AIzaSyARsDsmgCRDMNdn8Oqyw1pg1m72iebvJy0",
+      authDomain: "bruh-ba711.firebaseapp.com",
+      databaseURL: "https://bruh-ba711-default-rtdb.firebaseio.com",
+      projectId: "bruh-ba711",
+      storageBucket: "bruh-ba711.firebasestorage.app",
+      messagingSenderId: "356860177225",
+      appId: "1:356860177225:web:e2b5515187c30e1cc28898",
+      measurementId: "G-V4E1ESRFD8"
+    };
+
+    // Initialisation
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    const completionsRef = ref(db, 'completions');
+
+    // Écoute des complétions en direct
+    onValue(completionsRef, (snapshot) => {
+      const data = snapshot.val();
+      const listDiv = document.getElementById('list');
+      listDiv.innerHTML = '';
+
+      if (!data) {
+        listDiv.innerHTML = '<p class="empty-msg">Aucun niveau complété pour l\'instant.</p>';
+        return;
+      }
+
+      Object.values(data).reverse().forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `
+          <span class="level-name">${item.level_name || 'Niveau inconnu'}</span>
+          <span class="level-stars">★ ${item.stars || 0}</span>
+        `;
+        listDiv.appendChild(card);
+      });
+    });
+  </script>
+</head>
+<body>
+
+  <h1>GD Completions Live</h1>
+  <div id="list">
+    <p class="empty-msg">Connexion à la base de données...</p>
+  </div>
+
+</body>
+</html>
