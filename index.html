@@ -3,128 +3,208 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mes Complétions Geometry Dash</title>
-  
+  <title>GD Completions Tracker</title>
   <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
+    :root {
+      --bg-color: #0f172a;
+      --card-bg: #1e293b;
+      --accent-color: #38bdf8;
+      --text-color: #f8fafc;
+      --text-muted: #94a3b8;
     }
+
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background-color: #0f0f13;
-      color: #ffffff;
-      padding: 30px 20px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      min-height: 100vh;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      margin: 0;
+      padding: 2rem;
     }
+
     h1 {
-      font-size: 2.2rem;
-      margin-bottom: 25px;
-      color: #00ffcc;
-      text-shadow: 0 0 10px rgba(0, 255, 204, 0.4);
-      text-transform: uppercase;
-      letter-spacing: 2px;
-    }
-    #list {
-      width: 100%;
-      max-width: 500px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-    .card {
-      background: #181822;
-      border: 1px solid #2a2a3c;
-      border-left: 5px solid #00ffcc;
-      padding: 16px 20px;
-      border-radius: 8px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-    .card:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(0, 255, 204, 0.15);
-    }
-    .level-name {
-      font-size: 1.2rem;
-      font-weight: bold;
-      color: #ffffff;
-    }
-    .level-stars {
-      font-size: 1rem;
-      font-weight: bold;
-      color: #ffd700;
-      background: rgba(255, 215, 0, 0.1);
-      padding: 4px 10px;
-      border-radius: 20px;
-      border: 1px solid rgba(255, 215, 0, 0.3);
-    }
-    .empty-msg {
       text-align: center;
-      color: #8888a0;
-      font-style: italic;
-      margin-top: 20px;
+      color: var(--accent-color);
+      margin-bottom: 2rem;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 1.5rem;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    /* Carte de Niveau */
+    .card {
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 1.5rem;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 20px rgba(56, 189, 248, 0.15);
+      border-color: var(--accent-color);
+    }
+
+    .card h3 {
+      margin: 0 0 0.5rem 0;
+      font-size: 1.3rem;
+    }
+
+    .card .badge {
+      display: inline-block;
+      padding: 0.25rem 0.6rem;
+      border-radius: 20px;
+      background: rgba(56, 189, 248, 0.1);
+      color: var(--accent-color);
+      font-size: 0.85rem;
+      font-weight: bold;
+    }
+
+    /* Modale (Pop-up) */
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(5px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+      z-index: 1000;
+    }
+
+    .modal-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal {
+      background: var(--card-bg);
+      padding: 2rem;
+      border-radius: 16px;
+      max-width: 500px;
+      width: 90%;
+      border: 1px solid var(--accent-color);
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+      position: relative;
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 1rem; right: 1rem;
+      background: none; border: none;
+      color: var(--text-muted);
+      font-size: 1.5rem;
+      cursor: pointer;
+    }
+
+    .modal-detail {
+      margin: 0.8rem 0;
+      color: var(--text-muted);
+    }
+
+    .modal-detail span {
+      color: var(--text-color);
+      font-weight: bold;
+    }
+
+    .btn-video {
+      display: inline-block;
+      margin-top: 1rem;
+      padding: 0.6rem 1.2rem;
+      background: var(--accent-color);
+      color: #000;
+      font-weight: bold;
+      text-decoration: none;
+      border-radius: 8px;
     }
   </style>
+</head>
+<body>
 
-  <!-- Modules Firebase v10 -->
+  <h1>🎮 Geometry Dash Completions</h1>
+  <div class="grid" id="levels-grid"></div>
+
+  <!-- Structure de la Modale -->
+  <div class="modal-overlay" id="modal-overlay">
+    <div class="modal">
+      <button class="modal-close" onclick="closeModal()">&times;</button>
+      <h2 id="m-title" style="color: var(--accent-color); margin-top: 0;"></h2>
+      <div class="modal-detail">Créateur : <span id="m-creator"></span></div>
+      <div class="modal-detail">Difficulté : <span id="m-difficulty"></span></div>
+      <div class="modal-detail">Étoiles : <span id="m-stars"></span> ⭐</div>
+      <div class="modal-detail">Tentatives : <span id="m-attempts"></span></div>
+      <div class="modal-detail">ID du niveau : <span id="m-id"></span></div>
+      <div class="modal-detail" style="margin-top: 1rem; font-style: italic;" id="m-comment"></div>
+      <div id="m-video-container"></div>
+    </div>
+  </div>
+
+  <!-- Firebase SDK -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-    // Tes identifiants exacts
     const firebaseConfig = {
-      apiKey: "AIzaSyARsDsmgCRDMNdn8Oqyw1pg1m72iebvJy0",
-      authDomain: "bruh-ba711.firebaseapp.com",
-      databaseURL: "https://bruh-ba711-default-rtdb.firebaseio.com",
-      projectId: "bruh-ba711",
-      storageBucket: "bruh-ba711.firebasestorage.app",
-      messagingSenderId: "356860177225",
-      appId: "1:356860177225:web:e2b5515187c30e1cc28898",
-      measurementId: "G-V4E1ESRFD8"
+      databaseURL: "https://bruh-ba711-default-rtdb.firebaseio.com"
     };
 
-    // Initialisation
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
-    const completionsRef = ref(db, 'completions');
 
-    // Écoute des complétions en direct
-    onValue(completionsRef, (snapshot) => {
+    const grid = document.getElementById('levels-grid');
+
+    // Récupération en temps réel
+    onValue(ref(db, 'completions'), (snapshot) => {
+      grid.innerHTML = '';
       const data = snapshot.val();
-      const listDiv = document.getElementById('list');
-      listDiv.innerHTML = '';
+      
+      if (!data) return;
 
-      if (!data) {
-        listDiv.innerHTML = '<p class="empty-msg">Aucun niveau complété pour l\'instant.</p>';
-        return;
-      }
-
-      Object.values(data).reverse().forEach(item => {
+      Object.values(data).reverse().forEach(level => {
         const card = document.createElement('div');
         card.className = 'card';
         card.innerHTML = `
-          <span class="level-name">${item.level_name || 'Niveau inconnu'}</span>
-          <span class="level-stars">★ ${item.stars || 0}</span>
+          <h3>${level.level_name}</h3>
+          <span class="badge">${level.difficulty || 'Rated'} - ${level.stars} ⭐</span>
         `;
-        listDiv.appendChild(card);
+        
+        // Au clic, on ouvre la modale avec les détails
+        card.onclick = () => openModal(level);
+        grid.appendChild(card);
       });
     });
+
+    window.openModal = (level) => {
+      document.getElementById('m-title').innerText = level.level_name;
+      document.getElementById('m-creator').innerText = level.creator || 'Inconnu';
+      document.getElementById('m-difficulty').innerText = level.difficulty || 'Non spécifiée';
+      document.getElementById('m-stars').innerText = level.stars || 0;
+      document.getElementById('m-attempts').innerText = level.attempts || 'N/A';
+      document.getElementById('m-id').innerText = level.level_id || 'N/A';
+      document.getElementById('m-comment').innerText = level.comment ? `"${level.comment}"` : '';
+
+      const videoContainer = document.getElementById('m-video-container');
+      if (level.video_url) {
+        videoContainer.innerHTML = `<a href="${level.video_url}" target="_blank" class="btn-video">📺 Voir la vidéo de preuve</a>`;
+      } else {
+        videoContainer.innerHTML = '';
+      }
+
+      document.getElementById('modal-overlay').classList.add('active');
+    };
+
+    window.closeModal = () => {
+      document.getElementById('modal-overlay').classList.remove('active');
+    };
   </script>
-</head>
-<body>
-
-  <h1>GD Completions Live</h1>
-  <div id="list">
-    <p class="empty-msg">Connexion à la base de données...</p>
-  </div>
-
 </body>
 </html>
