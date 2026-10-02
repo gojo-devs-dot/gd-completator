@@ -3,87 +3,245 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GD Tracker avec Fond YouTube</title>
+  <title>Geometry Dash - Completion Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800;900&display=swap" rel="stylesheet">
+  
   <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
+    :root {
+      --bg-dark: #090d16;
+      --card-bg: rgba(19, 27, 46, 0.85); /* Semi-transparent pour voir le fond */
+      --card-border: rgba(255, 255, 255, 0.1);
+      --accent-cyan: #38bdf8;
+      --accent-purple: #c084fc;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
     }
 
-    body, html {
-      width: 100%;
-      height: 100%;
-      overflow-x: hidden;
-      font-family: 'Segoe UI', sans-serif;
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Outfit', sans-serif;
+      color: var(--text-main);
+      min-height: 100vh;
+      padding: 2rem 1rem;
+      background-color: var(--bg-dark);
     }
 
-    /* Conteneur de la vidéo en arrière-plan */
+    /* --- FOND VIDÉO YOUTUBE --- */
     .video-background {
       position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
       z-index: -2;
-      pointer-events: none; /* Empêche de cliquer sur la vidéo */
+      pointer-events: none;
       overflow: hidden;
     }
 
     .video-background iframe {
       position: absolute;
-      top: 50%;
-      left: 50%;
-      width: 100vw;
-      height: 56.25vw; /* Ratio 16:9 */
-      min-height: 100vh;
-      min-width: 177.77vh; /* Ratio 16:9 */
+      top: 50%; left: 50%;
+      width: 100vw; height: 56.25vw;
+      min-height: 100vh; min-width: 177.77vh;
       transform: translate(-50%, -50%);
     }
 
-    /* Calque sombre par-dessus la vidéo pour lire le texte facilement */
+    /* Couche sombre et floutée par-dessus la vidéo */
     .overlay {
       position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(9, 13, 22, 0.75); /* Ajuste l'opacité selon tes goûts */
-      backdrop-filter: blur(3px); /* Optionnel : floute légèrement la vidéo */
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(9, 13, 22, 0.75);
+      backdrop-filter: blur(4px);
       z-index: -1;
     }
 
-    /* Contenu de ton site */
-    .content {
-      position: relative;
-      z-index: 1;
-      color: #fff;
-      padding: 2rem;
-      text-align: center;
+    /* --- STYLE DES COMPLÉTIONS (RESTENT NICKELS PAR-DESSUS) --- */
+    .container { max-width: 1200px; margin: 0 auto; position: relative; z-index: 1; }
+    
+    header { text-align: center; margin-bottom: 2.5rem; }
+    header h1 {
+      font-size: 3rem; font-weight: 900; text-transform: uppercase;
+      background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
     }
+
+    .stats-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+    .stat-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 16px; padding: 1.2rem; text-align: center; backdrop-filter: blur(10px); }
+    .stat-card .val { font-size: 2.2rem; font-weight: 800; color: var(--accent-cyan); }
+    .stat-card .lbl { font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase; }
+
+    .filter-bar { display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem; background: var(--card-bg); padding: 1rem; border-radius: 16px; border: 1px solid var(--card-border); backdrop-filter: blur(10px); }
+    .filter-bar input, .filter-bar select { background: rgba(0, 0, 0, 0.5); border: 1px solid var(--card-border); color: var(--text-main); padding: 0.75rem 1rem; border-radius: 10px; font-family: inherit; outline: none; }
+    .filter-bar input { flex: 1; min-width: 200px; }
+
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem; }
+    .card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 16px; padding: 1.5rem; cursor: pointer; transition: all 0.25s; backdrop-filter: blur(10px); }
+    .card:hover { transform: translateY(-6px); border-color: var(--accent-cyan); box-shadow: 0 12px 30px rgba(56, 189, 248, 0.2); }
+    .card h3 { font-size: 1.35rem; font-weight: 800; }
+    .user-badge { font-size: 0.8rem; background: rgba(255, 255, 255, 0.1); padding: 0.3rem 0.6rem; border-radius: 20px; color: var(--accent-purple); font-weight: 600; display: inline-block; margin-bottom: 0.5rem; }
+    .card-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; padding-top: 0.8rem; border-top: 1px solid rgba(255, 255, 255, 0.05); }
+
+    /* Modale */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(5, 8, 15, 0.85); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.3s; z-index: 1000; padding: 1rem; }
+    .modal-overlay.active { opacity: 1; pointer-events: auto; }
+    .modal { background: #131b2e; border: 1px solid var(--accent-cyan); border-radius: 20px; padding: 2rem; max-width: 550px; width: 100%; position: relative; }
+    .modal-close { position: absolute; top: 1.2rem; right: 1.2rem; background: rgba(255, 255, 255, 0.1); border: none; color: var(--text-muted); width: 32px; height: 32px; border-radius: 50%; font-size: 1.2rem; cursor: pointer; }
   </style>
 </head>
 <body>
 
-  <!-- Arrière-plan Vidéo YouTube -->
+  <!-- 1. Arrière-plan Vidéo YouTube -->
   <div class="video-background">
-    <!-- Remplace VIDEO_ID par l'identifiant de ta vidéo YouTube (ex: dQw4w9WgXcQ) -->
+    <!-- Remplace ID_DE_LA_VIDEO par l'ID YouTube souhaité (ex: 843232, dQw4w9WgXcQ, etc.) -->
     <iframe 
-      src="https://www.youtube.com/embed/VIDEO_ID?autoplay=1&mute=1&loop=1&playlist=VIDEO_ID&controls=0&showinfo=0&autohide=1&modestbranding=1" 
+      src="https://www.youtube.com/embed/ID_DE_LA_VIDEO?autoplay=1&mute=1&loop=1&playlist=ID_DE_LA_VIDEO&controls=0&showinfo=0&autohide=1&modestbranding=1" 
       frameborder="0" 
       allow="autoplay; encrypted-media" 
       allowfullscreen>
     </iframe>
   </div>
 
-  <!-- Filtre sombre pour la lisibilité -->
+  <!-- 2. Filtre Sombre pour garder les complétions super lisibles -->
   <div class="overlay"></div>
 
-  <!-- Contenu du site -->
-  <div class="content">
-    <h1>Geometry Dash Tracker</h1>
-    <p>Ton contenu s'affiche par-dessus la vidéo !</p>
+  <!-- 3. Contenu du Tracker par-dessus -->
+  <div class="container">
+    <header>
+      <h1>Geometry Dash Tracker</h1>
+      <p>Suivi en temps réel des niveaux complétés</p>
+    </header>
+
+    <div class="stats-container">
+      <div class="stat-card">
+        <div class="val" id="st-total">0</div>
+        <div class="lbl">Niveaux Complétés</div>
+      </div>
+      <div class="stat-card">
+        <div class="val" id="st-stars">0 ⭐</div>
+        <div class="lbl">Total Étoiles</div>
+      </div>
+      <div class="stat-card">
+        <div class="val" id="st-demons">0 💀</div>
+        <div class="lbl">Demons Vaincus</div>
+      </div>
+    </div>
+
+    <div class="filter-bar">
+      <input type="text" id="search-input" placeholder="🔍 Rechercher un niveau...">
+      <select id="user-filter">
+        <option value="ALL">👤 Tous les joueurs</option>
+      </select>
+      <select id="diff-filter">
+        <option value="ALL">⭐ Toutes les difficultés</option>
+        <option value="Demon">Demons uniquement</option>
+      </select>
+    </div>
+
+    <div class="grid" id="levels-grid"></div>
   </div>
 
+  <!-- Modale -->
+  <div class="modal-overlay" id="modal-overlay">
+    <div class="modal">
+      <button class="modal-close" onclick="closeModal()">&times;</button>
+      <div class="user-badge" id="m-user">👤 Player</div>
+      <h2 id="m-title" style="font-size: 2rem; color: var(--accent-cyan);">Level Name</h2>
+      <div style="margin: 1rem 0; color: var(--text-muted);" id="m-details"></div>
+      <div id="m-comment-container"></div>
+      <div id="m-video-container"></div>
+    </div>
+  </div>
+
+  <!-- Firebase Script -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+    const firebaseConfig = { databaseURL: "https://bruh-ba711-default-rtdb.firebaseio.com" };
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    let allLevels = [];
+
+    const grid = document.getElementById('levels-grid');
+    const searchInput = document.getElementById('search-input');
+    const userFilter = document.getElementById('user-filter');
+    const diffFilter = document.getElementById('diff-filter');
+
+    onValue(ref(db, 'completions'), (snapshot) => {
+      const data = snapshot.val();
+      if (!data) return;
+      allLevels = Object.values(data).reverse();
+      updateUserDropdown();
+      updateStats();
+      renderLevels();
+    });
+
+    function updateStats() {
+      document.getElementById('st-total').innerText = allLevels.length;
+      const totalStars = allLevels.reduce((sum, lvl) => sum + (Number(lvl.stars) || 0), 0);
+      document.getElementById('st-stars').innerText = `${totalStars} ⭐`;
+      const totalDemons = allLevels.filter(lvl => (lvl.difficulty || '').toLowerCase().includes('demon')).length;
+      document.getElementById('st-demons').innerText = `${totalDemons} 💀`;
+    }
+
+    function updateUserDropdown() {
+      const users = [...new Set(allLevels.map(l => l.user || 'Anonyme'))];
+      userFilter.innerHTML = '<option value="ALL">👤 Tous les joueurs</option>';
+      users.forEach(u => { userFilter.innerHTML += `<option value="${u}">${u}</option>`; });
+    }
+
+    function renderLevels() {
+      grid.innerHTML = '';
+      const query = searchInput.value.toLowerCase();
+      const selectedUser = userFilter.value;
+      const selectedDiff = diffFilter.value;
+
+      const filtered = allLevels.filter(lvl => {
+        const matchesName = (lvl.level_name || '').toLowerCase().includes(query);
+        const matchesUser = selectedUser === 'ALL' || (lvl.user || 'Anonyme') === selectedUser;
+        const matchesDiff = selectedDiff === 'ALL' || (selectedDiff === 'Demon' && (lvl.difficulty || '').toLowerCase().includes('demon'));
+        return matchesName && matchesUser && matchesDiff;
+      });
+
+      filtered.forEach(lvl => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `
+          <div class="user-badge">👤 ${lvl.user || 'Anonyme'}</div>
+          <h3>${lvl.level_name}</h3>
+          <p style="color: var(--text-muted); font-size: 0.85rem;">par ${lvl.creator || 'Inconnu'}</p>
+          <div class="card-footer">
+            <span style="font-weight: 800; color: var(--accent-cyan);">${lvl.difficulty || 'Rated'}</span>
+            <span style="color: #facc15; font-weight: 800;">${lvl.stars || 0} ⭐</span>
+          </div>
+        `;
+        card.onclick = () => openModal(lvl);
+        grid.appendChild(card);
+      });
+    }
+
+    searchInput.addEventListener('input', renderLevels);
+    userFilter.addEventListener('change', renderLevels);
+    diffFilter.addEventListener('change', renderLevels);
+
+    window.openModal = (lvl) => {
+      document.getElementById('m-user').innerText = `👤 ${lvl.user || 'Anonyme'}`;
+      document.getElementById('m-title').innerText = lvl.level_name;
+      document.getElementById('m-details').innerHTML = `
+        <p>Créateur : <b>${lvl.creator || 'Inconnu'}</b></p>
+        <p>Difficulté : <b>${lvl.difficulty || 'Rated'}</b></p>
+        <p>Étoiles : <b>${lvl.stars || 0} ⭐</b></p>
+        <p>Tentatives : <b>${lvl.attempts || 'N/A'}</b></p>
+      `;
+      const videoBox = document.getElementById('m-video-container');
+      videoBox.innerHTML = lvl.video_url ? `<a href="${lvl.video_url}" target="_blank" style="display:inline-block; margin-top:1rem; color:var(--accent-cyan); font-weight:bold;">▶️ Voir la vidéo</a>` : '';
+      document.getElementById('modal-overlay').classList.add('active');
+    };
+
+    window.closeModal = () => { document.getElementById('modal-overlay').classList.remove('active'); };
+  </script>
 </body>
 </html>
