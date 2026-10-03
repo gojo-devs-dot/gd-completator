@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800;900&display=swap" rel="stylesheet">
   
-  <!-- Script Cloudflare Turnstile -->
+  <!-- Script Turnstile chargé en amont -->
   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 
   <style>
@@ -139,7 +139,9 @@
     .captcha-container {
       display: flex;
       justify-content: center;
+      align-items: center;
       margin: 1.2rem 0;
+      min-height: 65px;
     }
 
     /* Style File d'attente */
@@ -269,7 +271,18 @@
     </div>
   </div>
 
-  <!-- Firebase Script -->
+  <!-- Script Global de Callback pour Turnstile -->
+  <script>
+    window.captchaVerified = false;
+    window.onCaptchaSuccess = function(token) {
+      window.captchaVerified = true;
+      if (typeof window.fetchTrackerData === 'function') {
+        window.fetchTrackerData();
+      }
+    };
+  </script>
+
+  <!-- Firebase Script (Module) -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getDatabase, ref, get, goOffline, goOnline } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
@@ -280,23 +293,15 @@
 
     let allLevels = [];
     let isInitialLoad = true;
-    let captchaVerified = false;
 
     const grid = document.getElementById('levels-grid');
     const searchInput = document.getElementById('search-input');
     const userFilter = document.getElementById('user-filter');
     const diffFilter = document.getElementById('diff-filter');
 
-    // Callback automatiquement appelé par Turnstile après la validation
-    window.onCaptchaSuccess = function(token) {
-      captchaVerified = true;
-      fetchTrackerData();
-    };
-
     // Charger les données Firebase
     window.fetchTrackerData = async () => {
-      // Bloquer le téléchargement si le Captcha n'est pas encore validé
-      if (!captchaVerified) {
+      if (!window.captchaVerified) {
         openWelcomeModal();
         return;
       }
@@ -340,11 +345,15 @@
     }
 
     // Ouvrir la modale d'accueil au lancement
+    window.openWelcomeModal = () => {
+      document.getElementById('welcome-modal-overlay').classList.add('active');
+    };
+
     openWelcomeModal();
 
     // Rafraîchissement automatique toutes les 30 sec si le Captcha est passé
     setInterval(() => {
-      if (captchaVerified) fetchTrackerData();
+      if (window.captchaVerified) fetchTrackerData();
     }, 30000);
 
     function updateUserDropdowns() {
@@ -418,12 +427,8 @@
     });
     diffFilter.addEventListener('change', renderLevels);
 
-    window.openWelcomeModal = () => {
-      document.getElementById('welcome-modal-overlay').classList.add('active');
-    };
-
     window.confirmSelectedPlayer = () => {
-      if (!captchaVerified) {
+      if (!window.captchaVerified) {
         alert("Veuillez d'abord valider le Captcha de sécurité.");
         return;
       }
@@ -447,7 +452,7 @@
     };
 
     window.confirmAllPlayers = () => {
-      if (!captchaVerified) {
+      if (!window.captchaVerified) {
         alert("Veuillez d'abord valider le Captcha de sécurité.");
         return;
       }
@@ -470,7 +475,7 @@
         <p>Tentatives : <b>${lvl.attempts || 'N/A'}</b></p>
       `;
       const videoBox = document.getElementById('m-video-container');
-      videoBox.innerHTML = lvl.video_url ? `<a href="${lvl.video_url}" target="_blank" style="display:inline-block; margin-top:1rem; color:var(--accent-cyan); font-weight:bold;">▶️ Voir la vidéo</a>` : '';
+      videoBox.innerHTML = lvl.video_url ? `<a href="${lvl.video_url}" target="_blank" style="display:inline-block; margin-top:1rem; color:var(--accent-cyan); font-weight:bold;">▶️️ Voir la vidéo</a>` : '';
       document.getElementById('modal-overlay').classList.add('active');
     };
 
