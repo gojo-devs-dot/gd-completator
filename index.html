@@ -27,13 +27,14 @@
       min-height: 100vh;
       padding: 2rem 1rem;
       background-color: var(--bg-dark);
+      overflow-x: hidden;
     }
 
-    /* --- FOND VIDÉO YOUTUBE --- */
+    /* --- FOND VIDÉO YOUTUBE FIXÉ --- */
     .video-background {
       position: fixed;
       top: 0; left: 0;
-      width: 100%; height: 100%;
+      width: 100vw; height: 100vh;
       z-index: -2;
       pointer-events: none;
       overflow: hidden;
@@ -42,18 +43,20 @@
     .video-background iframe {
       position: absolute;
       top: 50%; left: 50%;
-      width: 100vw; height: 56.25vw;
+      width: 100vw; height: 56.25vw; /* Ratio 16:9 */
       min-height: 100vh; min-width: 177.77vh;
       transform: translate(-50%, -50%);
+      pointer-events: none;
+      border: none;
     }
 
-    /* Couche sombre et floutée par-dessus la vidéo */
+    /* Couche sombre, gradient et floutée par-dessus la vidéo */
     .overlay {
       position: fixed;
       top: 0; left: 0;
       width: 100%; height: 100%;
-      background: rgba(9, 13, 22, 0.75);
-      backdrop-filter: blur(4px);
+      background: radial-gradient(circle at center, rgba(19, 27, 46, 0.6) 0%, rgba(9, 13, 22, 0.92) 100%);
+      backdrop-filter: blur(5px);
       z-index: -1;
     }
 
@@ -135,17 +138,16 @@
 </head>
 <body>
 
-  <!-- 1. Arrière-plan Vidéo YouTube -->
+  <!-- 1. Arrière-plan Vidéo YouTube Optimisé -->
   <div class="video-background">
     <iframe 
-      src="https://www.youtube.com/embed/9T12b053-Cg?autoplay=1&mute=1&loop=1&playlist=9T12b053-Cg&controls=0&showinfo=0&autohide=1&modestbranding=1&enablejsapi=1" 
-      frameborder="0" 
-      allow="autoplay; encrypted-media" 
+      src="https://www.youtube-nocookie.com/embed/9T12b053-Cg?autoplay=1&mute=1&loop=1&playlist=9T12b053-Cg&controls=0&showinfo=0&autohide=1&modestbranding=1&enablejsapi=1&playsinline=1" 
+      allow="autoplay; encrypted-media; picture-in-picture" 
       allowfullscreen>
     </iframe>
   </div>
 
-  <!-- 2. Filtre Sombre -->
+  <!-- 2. Filtre Sombre pour la lisibilité -->
   <div class="overlay"></div>
 
   <!-- 3. Contenu du Tracker -->
@@ -244,7 +246,6 @@
       allLevels = Object.values(data).reverse();
       updateUserDropdowns();
       
-      // Au tout premier chargement
       if (isInitialLoad) {
         isInitialLoad = false;
         const savedPlayer = localStorage.getItem("selectedGDPlayer");
@@ -263,11 +264,9 @@
     function updateUserDropdowns() {
       const users = [...new Set(allLevels.map(l => l.user || 'Anonyme'))];
       
-      // Dropdown de la barre de filtres
       userFilter.innerHTML = '<option value="ALL">👤 Tous les joueurs</option>';
       users.forEach(u => { userFilter.innerHTML += `<option value="${u}">${u}</option>`; });
 
-      // Dropdown de la modale d'accueil
       const welcomeSelect = document.getElementById('welcome-user-select');
       welcomeSelect.innerHTML = '<option value="">-- Sélectionner un joueur --</option>';
       users.forEach(u => { welcomeSelect.innerHTML += `<option value="${u}">${u}</option>`; });
@@ -324,7 +323,6 @@
       });
     }
 
-    // Événements filtres
     searchInput.addEventListener('input', renderLevels);
     userFilter.addEventListener('change', () => {
       localStorage.setItem("selectedGDPlayer", userFilter.value);
@@ -334,7 +332,6 @@
     });
     diffFilter.addEventListener('change', renderLevels);
 
-    // --- FONCTIONS GLOBALEMENT ACCESSIBLES ---
     window.openWelcomeModal = () => {
       document.getElementById('welcome-modal-overlay').classList.add('active');
     };
