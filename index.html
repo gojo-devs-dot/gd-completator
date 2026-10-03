@@ -67,6 +67,30 @@
       -webkit-background-clip: text; -webkit-text-fill-color: transparent;
     }
 
+    .user-header-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-top: 0.75rem;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--card-border);
+      padding: 0.4rem 1rem;
+      border-radius: 30px;
+    }
+
+    .btn-change-user {
+      background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+      border: none;
+      color: #000;
+      font-weight: 800;
+      padding: 0.3rem 0.8rem;
+      border-radius: 15px;
+      cursor: pointer;
+      font-size: 0.8rem;
+      transition: transform 0.2s;
+    }
+    .btn-change-user:hover { transform: scale(1.05); }
+
     .stats-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
     .stat-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 16px; padding: 1.2rem; text-align: center; backdrop-filter: blur(10px); }
     .stat-card .val { font-size: 2.2rem; font-weight: 800; color: var(--accent-cyan); }
@@ -83,16 +107,35 @@
     .user-badge { font-size: 0.8rem; background: rgba(255, 255, 255, 0.1); padding: 0.3rem 0.6rem; border-radius: 20px; color: var(--accent-purple); font-weight: 600; display: inline-block; margin-bottom: 0.5rem; }
     .card-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; padding-top: 0.8rem; border-top: 1px solid rgba(255, 255, 255, 0.05); }
 
-    /* Modale */
+    /* --- MODALES --- */
     .modal-overlay { position: fixed; inset: 0; background: rgba(5, 8, 15, 0.85); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.3s; z-index: 1000; padding: 1rem; }
     .modal-overlay.active { opacity: 1; pointer-events: auto; }
     .modal { background: #131b2e; border: 1px solid var(--accent-cyan); border-radius: 20px; padding: 2rem; max-width: 550px; width: 100%; position: relative; }
     .modal-close { position: absolute; top: 1.2rem; right: 1.2rem; background: rgba(255, 255, 255, 0.1); border: none; color: var(--text-muted); width: 32px; height: 32px; border-radius: 50%; font-size: 1.2rem; cursor: pointer; }
+
+    /* Modale de Sélection de Joueur */
+    .welcome-modal { text-align: center; }
+    .welcome-modal h2 { font-size: 1.8rem; font-weight: 900; margin-bottom: 0.5rem; color: var(--accent-cyan); }
+    .welcome-modal p { color: var(--text-muted); margin-bottom: 1.5rem; font-size: 0.95rem; }
+    .welcome-select-box { display: flex; flex-direction: column; gap: 1rem; }
+    .welcome-select-box select, .welcome-select-box input {
+      background: rgba(0, 0, 0, 0.5);
+      border: 1px solid var(--accent-cyan);
+      color: #fff;
+      padding: 0.8rem 1rem;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-family: inherit;
+      outline: none;
+    }
+    .welcome-btn-group { display: flex; gap: 0.75rem; margin-top: 1rem; }
+    .btn-primary { flex: 1; background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple)); border: none; color: #000; font-weight: 800; padding: 0.8rem; border-radius: 12px; cursor: pointer; font-size: 1rem; }
+    .btn-secondary { background: rgba(255, 255, 255, 0.1); border: 1px solid var(--card-border); color: #fff; padding: 0.8rem 1.2rem; border-radius: 12px; cursor: pointer; font-weight: 600; }
   </style>
 </head>
 <body>
 
-  <!-- 1. Arrière-plan Vidéo YouTube (Bloodbath gameplay) -->
+  <!-- 1. Arrière-plan Vidéo YouTube -->
   <div class="video-background">
     <iframe 
       src="https://www.youtube.com/embed/9T12b053-Cg?autoplay=1&mute=1&loop=1&playlist=9T12b053-Cg&controls=0&showinfo=0&autohide=1&modestbranding=1&enablejsapi=1" 
@@ -102,7 +145,7 @@
     </iframe>
   </div>
 
-  <!-- 2. Filtre Sombre pour la lisibilité -->
+  <!-- 2. Filtre Sombre -->
   <div class="overlay"></div>
 
   <!-- 3. Contenu du Tracker -->
@@ -110,6 +153,10 @@
     <header>
       <h1>Geometry Dash Tracker</h1>
       <p>Suivi en temps réel des niveaux complétés</p>
+      <div class="user-header-status">
+        <span id="current-user-display" style="font-size: 0.9rem; font-weight: 600;">👤 Profil : Tout le monde</span>
+        <button class="btn-change-user" onclick="openWelcomeModal()">Changer</button>
+      </div>
     </header>
 
     <div class="stats-container">
@@ -141,7 +188,28 @@
     <div class="grid" id="levels-grid"></div>
   </div>
 
-  <!-- Modale -->
+  <!-- Modale 1 : Choix du Joueur au Démarrage -->
+  <div class="modal-overlay" id="welcome-modal-overlay">
+    <div class="modal welcome-modal">
+      <h2>🏆 Bienvenue !</h2>
+      <p>Choisissez le profil du joueur à afficher :</p>
+
+      <div class="welcome-select-box">
+        <select id="welcome-user-select">
+          <option value="">Chargement des joueurs...</option>
+        </select>
+        <p style="font-size: 0.8rem; margin: 0; color: var(--text-muted);">Ou entrez un pseudo personnalisé :</p>
+        <input type="text" id="welcome-user-custom" placeholder="Ex: Brodev1...">
+      </div>
+
+      <div class="welcome-btn-group">
+        <button class="btn-primary" onclick="confirmSelectedPlayer()">Valider</button>
+        <button class="btn-secondary" onclick="confirmAllPlayers()">Voir Tout</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modale 2 : Détails du Niveau -->
   <div class="modal-overlay" id="modal-overlay">
     <div class="modal">
       <button class="modal-close" onclick="closeModal()">&times;</button>
@@ -163,6 +231,7 @@
     const db = getDatabase(app);
 
     let allLevels = [];
+    let isInitialLoad = true;
 
     const grid = document.getElementById('levels-grid');
     const searchInput = document.getElementById('search-input');
@@ -173,23 +242,56 @@
       const data = snapshot.val();
       if (!data) return;
       allLevels = Object.values(data).reverse();
-      updateUserDropdown();
+      updateUserDropdowns();
+      
+      // Au tout premier chargement
+      if (isInitialLoad) {
+        isInitialLoad = false;
+        const savedPlayer = localStorage.getItem("selectedGDPlayer");
+        if (savedPlayer) {
+          userFilter.value = savedPlayer;
+        } else {
+          openWelcomeModal();
+        }
+      }
+
+      updateUserHeaderStatus();
       updateStats();
       renderLevels();
     });
 
-    function updateStats() {
-      document.getElementById('st-total').innerText = allLevels.length;
-      const totalStars = allLevels.reduce((sum, lvl) => sum + (Number(lvl.stars) || 0), 0);
-      document.getElementById('st-stars').innerText = `${totalStars} ⭐`;
-      const totalDemons = allLevels.filter(lvl => (lvl.difficulty || '').toLowerCase().includes('demon')).length;
-      document.getElementById('st-demons').innerText = `${totalDemons} 💀`;
-    }
-
-    function updateUserDropdown() {
+    function updateUserDropdowns() {
       const users = [...new Set(allLevels.map(l => l.user || 'Anonyme'))];
+      
+      // Dropdown de la barre de filtres
       userFilter.innerHTML = '<option value="ALL">👤 Tous les joueurs</option>';
       users.forEach(u => { userFilter.innerHTML += `<option value="${u}">${u}</option>`; });
+
+      // Dropdown de la modale d'accueil
+      const welcomeSelect = document.getElementById('welcome-user-select');
+      welcomeSelect.innerHTML = '<option value="">-- Sélectionner un joueur --</option>';
+      users.forEach(u => { welcomeSelect.innerHTML += `<option value="${u}">${u}</option>`; });
+    }
+
+    function updateUserHeaderStatus() {
+      const selected = userFilter.value;
+      const statusText = document.getElementById('current-user-display');
+      if (selected && selected !== 'ALL') {
+        statusText.innerText = `👤 Profil : ${selected}`;
+      } else {
+        statusText.innerText = `👤 Profil : Tout le monde`;
+      }
+    }
+
+    function updateStats() {
+      const selectedUser = userFilter.value;
+      const activeLevels = allLevels.filter(lvl => selectedUser === 'ALL' || (lvl.user || 'Anonyme') === selectedUser);
+
+      document.getElementById('st-total').innerText = activeLevels.length;
+      const totalStars = activeLevels.reduce((sum, lvl) => sum + (Number(lvl.stars) || 0), 0);
+      document.getElementById('st-stars').innerText = `${totalStars} ⭐`;
+      const totalDemons = activeLevels.filter(lvl => (lvl.difficulty || '').toLowerCase().includes('demon')).length;
+      document.getElementById('st-demons').innerText = `${totalDemons} 💀`;
     }
 
     function renderLevels() {
@@ -222,9 +324,49 @@
       });
     }
 
+    // Événements filtres
     searchInput.addEventListener('input', renderLevels);
-    userFilter.addEventListener('change', renderLevels);
+    userFilter.addEventListener('change', () => {
+      localStorage.setItem("selectedGDPlayer", userFilter.value);
+      updateUserHeaderStatus();
+      updateStats();
+      renderLevels();
+    });
     diffFilter.addEventListener('change', renderLevels);
+
+    // --- FONCTIONS GLOBALEMENT ACCESSIBLES ---
+    window.openWelcomeModal = () => {
+      document.getElementById('welcome-modal-overlay').classList.add('active');
+    };
+
+    window.confirmSelectedPlayer = () => {
+      const selectVal = document.getElementById('welcome-user-select').value;
+      const customVal = document.getElementById('welcome-user-custom').value.trim();
+      
+      const finalPlayer = customVal || selectVal;
+      
+      if (finalPlayer) {
+        userFilter.value = finalPlayer;
+        localStorage.setItem("selectedGDPlayer", finalPlayer);
+      } else {
+        userFilter.value = 'ALL';
+        localStorage.setItem("selectedGDPlayer", 'ALL');
+      }
+
+      document.getElementById('welcome-modal-overlay').classList.remove('active');
+      updateUserHeaderStatus();
+      updateStats();
+      renderLevels();
+    };
+
+    window.confirmAllPlayers = () => {
+      userFilter.value = 'ALL';
+      localStorage.setItem("selectedGDPlayer", 'ALL');
+      document.getElementById('welcome-modal-overlay').classList.remove('active');
+      updateUserHeaderStatus();
+      updateStats();
+      renderLevels();
+    };
 
     window.openModal = (lvl) => {
       document.getElementById('m-user').innerText = `👤 ${lvl.user || 'Anonyme'}`;
