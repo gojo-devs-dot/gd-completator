@@ -30,7 +30,7 @@
       overflow-x: hidden;
     }
 
-    /* --- FOND VIDÉO YOUTUBE FIXÉ --- */
+    /* --- FOND VIDÉO YOUTUBE --- */
     .video-background {
       position: fixed;
       top: 0; left: 0;
@@ -43,14 +43,13 @@
     .video-background iframe {
       position: absolute;
       top: 50%; left: 50%;
-      width: 100vw; height: 56.25vw; /* Ratio 16:9 */
+      width: 100vw; height: 56.25vw;
       min-height: 100vh; min-width: 177.77vh;
       transform: translate(-50%, -50%);
       pointer-events: none;
       border: none;
     }
 
-    /* Couche sombre, gradient et floutée par-dessus la vidéo */
     .overlay {
       position: fixed;
       top: 0; left: 0;
@@ -60,7 +59,6 @@
       z-index: -1;
     }
 
-    /* --- CONTENU DE LA PAGE --- */
     .container { max-width: 1200px; margin: 0 auto; position: relative; z-index: 1; }
     
     header { text-align: center; margin-bottom: 2.5rem; }
@@ -116,7 +114,6 @@
     .modal { background: #131b2e; border: 1px solid var(--accent-cyan); border-radius: 20px; padding: 2rem; max-width: 550px; width: 100%; position: relative; }
     .modal-close { position: absolute; top: 1.2rem; right: 1.2rem; background: rgba(255, 255, 255, 0.1); border: none; color: var(--text-muted); width: 32px; height: 32px; border-radius: 50%; font-size: 1.2rem; cursor: pointer; }
 
-    /* Modale de Sélection de Joueur */
     .welcome-modal { text-align: center; }
     .welcome-modal h2 { font-size: 1.8rem; font-weight: 900; margin-bottom: 0.5rem; color: var(--accent-cyan); }
     .welcome-modal p { color: var(--text-muted); margin-bottom: 1.5rem; font-size: 0.95rem; }
@@ -134,11 +131,30 @@
     .welcome-btn-group { display: flex; gap: 0.75rem; margin-top: 1rem; }
     .btn-primary { flex: 1; background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple)); border: none; color: #000; font-weight: 800; padding: 0.8rem; border-radius: 12px; cursor: pointer; font-size: 1rem; }
     .btn-secondary { background: rgba(255, 255, 255, 0.1); border: 1px solid var(--card-border); color: #fff; padding: 0.8rem 1.2rem; border-radius: 12px; cursor: pointer; font-weight: 600; }
+
+    /* --- STYLE FILE D'ATTENTE --- */
+    .queue-badge {
+      font-size: 3rem;
+      font-weight: 900;
+      color: var(--accent-cyan);
+      margin: 1rem 0;
+      text-shadow: 0 0 20px rgba(56, 189, 248, 0.4);
+    }
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid rgba(255, 255, 255, 0.1);
+      border-left-color: var(--accent-cyan);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 1rem auto;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
 
-  <!-- 1. Arrière-plan Vidéo YouTube Optimisé -->
+  <!-- 1. Arrière-plan Vidéo YouTube -->
   <div class="video-background">
     <iframe 
       src="https://www.youtube-nocookie.com/embed/9T12b053-Cg?autoplay=1&mute=1&loop=1&playlist=9T12b053-Cg&controls=0&showinfo=0&autohide=1&modestbranding=1&enablejsapi=1&playsinline=1" 
@@ -147,10 +163,9 @@
     </iframe>
   </div>
 
-  <!-- 2. Filtre Sombre pour la lisibilité -->
   <div class="overlay"></div>
 
-  <!-- 3. Contenu du Tracker -->
+  <!-- Contenu Principal -->
   <div class="container">
     <header>
       <h1>Geometry Dash Tracker</h1>
@@ -190,7 +205,7 @@
     <div class="grid" id="levels-grid"></div>
   </div>
 
-  <!-- Modale 1 : Choix du Joueur au Démarrage -->
+  <!-- Modale 1 : Choix du Joueur -->
   <div class="modal-overlay" id="welcome-modal-overlay">
     <div class="modal welcome-modal">
       <h2>🏆 Bienvenue !</h2>
@@ -223,10 +238,26 @@
     </div>
   </div>
 
+  <!-- Modale 3 : File d'attente (Saturation Firebase) -->
+  <div class="modal-overlay" id="queue-modal-overlay">
+    <div class="modal welcome-modal">
+      <h2>⏳ Serveurs très occupés</h2>
+      <p>Trop de connexions simultanées. Vous êtes en file d'attente :</p>
+
+      <div class="queue-badge" id="queue-position">#1</div>
+      <div class="spinner"></div>
+      <p style="font-size: 0.85rem; color: var(--text-muted);">Tentative de reconnexion automatique...</p>
+
+      <div class="welcome-btn-group">
+        <button class="btn-primary" onclick="fetchTrackerData()">Réessayer maintenant</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Firebase Script -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+    import { getDatabase, ref, get, goOffline, goOnline } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
     const firebaseConfig = { databaseURL: "https://bruh-ba711-default-rtdb.firebaseio.com" };
     const app = initializeApp(firebaseConfig);
@@ -240,26 +271,53 @@
     const userFilter = document.getElementById('user-filter');
     const diffFilter = document.getElementById('diff-filter');
 
-    onValue(ref(db, 'completions'), (snapshot) => {
-      const data = snapshot.val();
-      if (!data) return;
-      allLevels = Object.values(data).reverse();
-      updateUserDropdowns();
-      
-      if (isInitialLoad) {
-        isInitialLoad = false;
-        const savedPlayer = localStorage.getItem("selectedGDPlayer");
-        if (savedPlayer) {
-          userFilter.value = savedPlayer;
-        } else {
-          openWelcomeModal();
-        }
-      }
+    // --- CHARGEMENT OPTIMISÉ DES DONNÉES (`get()`) ---
+    window.fetchTrackerData = async () => {
+      try {
+        goOnline(db); // Activer temporairement la connexion
+        const snapshot = await get(ref(db, 'completions'));
+        
+        // On ferme la connexion immédiatement après le téléchargement pour libérer la place
+        setTimeout(() => goOffline(db), 1000);
 
-      updateUserHeaderStatus();
-      updateStats();
-      renderLevels();
-    });
+        if (snapshot.exists()) {
+          const data = snapshot.val();
+          allLevels = Object.values(data).reverse();
+          updateUserDropdowns();
+          
+          if (isInitialLoad) {
+            isInitialLoad = false;
+            const savedPlayer = localStorage.getItem("selectedGDPlayer");
+            if (savedPlayer) {
+              userFilter.value = savedPlayer;
+            } else {
+              openWelcomeModal();
+            }
+          }
+
+          document.getElementById('queue-modal-overlay').classList.remove('active');
+          updateUserHeaderStatus();
+          updateStats();
+          renderLevels();
+        }
+      } catch (error) {
+        console.error("Erreur de connexion Firebase :", error);
+        showQueueModal();
+      }
+    };
+
+    function showQueueModal() {
+      // Génère une position aléatoire réaliste dans la file (ex: entre 1 et 5)
+      const randomPos = Math.floor(Math.random() * 5) + 1;
+      document.getElementById('queue-position').innerText = `#${randomPos}`;
+      document.getElementById('queue-modal-overlay').classList.add('active');
+    }
+
+    // Premier chargement
+    fetchTrackerData();
+
+    // Rafraîchissement automatique discret toutes les 30 secondes
+    setInterval(fetchTrackerData, 30000);
 
     function updateUserDropdowns() {
       const users = [...new Set(allLevels.map(l => l.user || 'Anonyme'))];
@@ -339,7 +397,6 @@
     window.confirmSelectedPlayer = () => {
       const selectVal = document.getElementById('welcome-user-select').value;
       const customVal = document.getElementById('welcome-user-custom').value.trim();
-      
       const finalPlayer = customVal || selectVal;
       
       if (finalPlayer) {
