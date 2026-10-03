@@ -8,6 +8,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800;900&display=swap" rel="stylesheet">
   
+  <!-- Script Cloudflare Turnstile -->
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+
   <style>
     :root {
       --bg-dark: #090d16;
@@ -132,7 +135,14 @@
     .btn-primary { flex: 1; background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple)); border: none; color: #000; font-weight: 800; padding: 0.8rem; border-radius: 12px; cursor: pointer; font-size: 1rem; }
     .btn-secondary { background: rgba(255, 255, 255, 0.1); border: 1px solid var(--card-border); color: #fff; padding: 0.8rem 1.2rem; border-radius: 12px; cursor: pointer; font-weight: 600; }
 
-    /* --- STYLE FILE D'ATTENTE --- */
+    /* Centrage du Captcha Turnstile */
+    .captcha-container {
+      display: flex;
+      justify-content: center;
+      margin: 1.2rem 0;
+    }
+
+    /* Style File d'attente */
     .queue-badge {
       font-size: 3rem;
       font-weight: 900;
@@ -154,7 +164,7 @@
 </head>
 <body>
 
-  <!-- 1. Arrière-plan Vidéo YouTube -->
+  <!-- Arrière-plan Vidéo -->
   <div class="video-background">
     <iframe 
       src="https://www.youtube-nocookie.com/embed/9T12b053-Cg?autoplay=1&mute=1&loop=1&playlist=9T12b053-Cg&controls=0&showinfo=0&autohide=1&modestbranding=1&enablejsapi=1&playsinline=1" 
@@ -205,11 +215,16 @@
     <div class="grid" id="levels-grid"></div>
   </div>
 
-  <!-- Modale 1 : Choix du Joueur -->
+  <!-- Modale 1 : Choix du Joueur + CAPTCHA -->
   <div class="modal-overlay" id="welcome-modal-overlay">
     <div class="modal welcome-modal">
       <h2>🏆 Bienvenue !</h2>
-      <p>Choisissez le profil du joueur à afficher :</p>
+      <p>Vérification de sécurité puis choisissez votre profil :</p>
+
+      <!-- Widget Cloudflare Turnstile -->
+      <div class="captcha-container">
+        <div class="cf-turnstile" data-sitekey="0x4AAAAAAFMlgKRPWwExbe9K" data-callback="onCaptchaSuccess"></div>
+      </div>
 
       <div class="welcome-select-box">
         <select id="welcome-user-select">
@@ -265,19 +280,31 @@
 
     let allLevels = [];
     let isInitialLoad = true;
+    let captchaVerified = false;
 
     const grid = document.getElementById('levels-grid');
     const searchInput = document.getElementById('search-input');
     const userFilter = document.getElementById('user-filter');
     const diffFilter = document.getElementById('diff-filter');
 
-    // --- CHARGEMENT OPTIMISÉ DES DONNÉES (`get()`) ---
+    // Callback automatiquement appelé par Turnstile après la validation
+    window.onCaptchaSuccess = function(token) {
+      captchaVerified = true;
+      fetchTrackerData();
+    };
+
+    // Charger les données Firebase
     window.fetchTrackerData = async () => {
+      // Bloquer le téléchargement si le Captcha n'est pas encore validé
+      if (!captchaVerified) {
+        openWelcomeModal();
+        return;
+      }
+
       try {
-        goOnline(db); // Activer temporairement la connexion
+        goOnline(db);
         const snapshot = await get(ref(db, 'completions'));
         
-        // On ferme la connexion immédiatement après le téléchargement pour libérer la place
         setTimeout(() => goOffline(db), 1000);
 
         if (snapshot.exists()) {
@@ -307,17 +334,18 @@
     };
 
     function showQueueModal() {
-      // Génère une position aléatoire réaliste dans la file (ex: entre 1 et 5)
       const randomPos = Math.floor(Math.random() * 5) + 1;
       document.getElementById('queue-position').innerText = `#${randomPos}`;
       document.getElementById('queue-modal-overlay').classList.add('active');
     }
 
-    // Premier chargement
-    fetchTrackerData();
+    // Ouvrir la modale d'accueil au lancement
+    openWelcomeModal();
 
-    // Rafraîchissement automatique discret toutes les 30 secondes
-    setInterval(fetchTrackerData, 30000);
+    // Rafraîchissement automatique toutes les 30 sec si le Captcha est passé
+    setInterval(() => {
+      if (captchaVerified) fetchTrackerData();
+    }, 30000);
 
     function updateUserDropdowns() {
       const users = [...new Set(allLevels.map(l => l.user || 'Anonyme'))];
@@ -395,6 +423,11 @@
     };
 
     window.confirmSelectedPlayer = () => {
+      if (!captchaVerified) {
+        alert("Veuillez d'abord valider le Captcha de sécurité.");
+        return;
+      }
+
       const selectVal = document.getElementById('welcome-user-select').value;
       const customVal = document.getElementById('welcome-user-custom').value.trim();
       const finalPlayer = customVal || selectVal;
@@ -414,6 +447,11 @@
     };
 
     window.confirmAllPlayers = () => {
+      if (!captchaVerified) {
+        alert("Veuillez d'abord valider le Captcha de sécurité.");
+        return;
+      }
+
       userFilter.value = 'ALL';
       localStorage.setItem("selectedGDPlayer", 'ALL');
       document.getElementById('welcome-modal-overlay').classList.remove('active');
